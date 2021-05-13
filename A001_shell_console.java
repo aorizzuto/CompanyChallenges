@@ -1,7 +1,7 @@
 
 import java.io.*;
-import java.nio.file.*;
 import java.util.*;
+
 
 /*
 Author: Alejandro Rizzuto
@@ -37,13 +37,11 @@ public class A001_shell_console {
 class Shell {
     // Class Shell where we handled all shell's commands.
 
+    CommandFactory commandFactory = new CommandFactory();
     final int _FILE_MAX_CHARACTERS_ = 100;  // Max characters for filename
-    CommandsImpl commands;                  // Commands implementation object
 
     /* Constructor */
-    public Shell() {
-        commands = new CommandsImpl();      // New object for commands
-    }
+    public Shell() {}
 
     /* Start method */
     public void start(){
@@ -53,15 +51,13 @@ class Shell {
 
     /* Initial message when shell begin */
     public void printInitialMessage(){
-        System.out.println("\nSSH Terminal v1.0");
-        System.out.println("Author: Alejandro O. Rizzuto \t\t2021/04/17\n");
+        System.out.println("\nSSH Terminal v1.0\nAuthor: Alejandro O. Rizzuto \t\t2021/04/17\n");
     }
 
     /* Method where we read the commands */
-    public int readCommands(){
+    public void readCommands(){
         Scanner scan = new Scanner(System.in);  // Scanner to get the input commands
         boolean done = true;                    // Flag to check if the command is "quit"
-        int retCode = 0;                        // Return code. 0:success, 1:fail
         
         while(done){
             printPrefix();                      // Prefix before each command. Usually ">>". This has been commented due the Hackerrank tests.
@@ -71,10 +67,7 @@ class Shell {
             else
                 done = false;                   // Exit if it is.     
         }
-
         scan.close();
-
-        return retCode;
     }
 
     /* Prefix */
@@ -84,160 +77,260 @@ class Shell {
 
     /* Check command */
     public boolean checkCommand(String command){
-        return command.contains("quit");    // check if the command contain quit.
-                                            // I could do "command.equals("quit");" also.
+        return command.contains("quit");    // check if the command contain quit. I could do "command.equals("quit");" also.
     }
-
-    // Create enum of commands. This should be part of another class.
-    public enum Cmd { pwd, ls, mkdir, cd, touch } 
 
     /* Execute Command */
     public void executeCommand(String command){
-      
-        String comm = command.split(" ")[0];
-
-        try{
-            switch(Cmd.valueOf(comm).ordinal()){
-                case 0:     executeCommandPWD(); break;
-                case 1:      executeCommandLS(command); break;
-                case 2:   executeCommandMKDIR(command); break;
-                case 3:      executeCommandCD(command); break;
-                case 4:   executeCommandTOUCH(command); break;
-                default:  commands.printUnrecognized(); break;   // If another command -> Unrecognized.        
-            }
-        }catch(Exception e){
-            if(!command.isEmpty()) commands.printUnrecognized();
-        }
+        Command cmd = commandFactory.getCommand(command);   // Get command from factory
+        if (cmd != null) cmd.execute();                     // Execute command
     }
-
-    /************** COMMANDS **************/
-    /* PWD */
-    public void executeCommandPWD(){ commands.executePWD(); }
-    /* LS */
-    public void executeCommandLS(String command){ commands.executeLS(command); }
-    /* MKDIR */
-    public void executeCommandMKDIR(String command){ commands.executeMKDIR(command); }
-    /* CD */
-    public void executeCommandCD(String command){ commands.executeCD(command, _FILE_MAX_CHARACTERS_); }
-    /* TOUCH */
-    public void executeCommandTOUCH(String command){ commands.executeTOUCH(command, _FILE_MAX_CHARACTERS_); }
 }
 
 /********************************************/
 
-interface Commands {
-    /* Use this interface to add commands to implement*/
-    public boolean executePWD();    
-    public boolean executeLS(String cmd);    
-    public boolean executeMKDIR(String cmd);
-    public boolean executeCD(String cmd, int maxChar);
-    public boolean executeTOUCH(String cmd, int maxChar);
-}
+class CommandFactory {
+    final int _FILE_MAX_CHARACTERS_ = 100;  // Max characters for filename
+
+    public CommandFactory(){
+        Command.homeDirectoryIntoStack();   // Add home directory to the stack of directories
+    }
+
+    public Command getCommand(String command){
+        String comm = command.split(" ")[0];        // Get first part of command and create an object of that command.
+
+        if(comm.equals("pwd"))      return new CommandPWD();
+        if(comm.equals("ls"))       return new CommandLS(command);
+        if(comm.equals("mkdir"))    return new CommandMKDIR(command);
+        if(comm.equals("cd"))       return new CommandCD(command, _FILE_MAX_CHARACTERS_);
+        if(comm.equals("touch"))    return new CommandTOUCH(command, _FILE_MAX_CHARACTERS_);
+        if(!command.equals(""))     System.out.println("Unrecognized Command");
+       
+        return null;    // If we press ENTER we add a new line waiting for another command
+    }
+ }
 
 /********************************************/
 
-class CommandsImpl implements Commands{
-    /* Command implementation */
+abstract class Command {    /*   */
+    protected static Stack<String> stackPaths = new Stack<>();
 
-    private String relativePath = "/";  // Path where I' start
+    public Command(){ }
 
-    /* Constructor */
-    public CommandsImpl(){
-        homeDirectory();      // When the object is created I'll find the home directory and save it
-    }
-
-    /* Get relative path */
-    public String getRelativePath(){
-        return this.relativePath;
+    public static void homeDirectoryIntoStack(){
+        stackPaths.add("/home"); // "/root" for challenge
     }
 
     /* Set relative path */
-    public void setRelativePath(String relPath){
-        this.relativePath = relPath;
+    public void addPathToRelativePath(String relPath){
+        stackPaths.add(relPath);
+    }
+    
+    /* Get relative path */
+    public String getRelativePath(){
+        return String.join("",stackPaths);
     }
 
-    /* Get start directory */
-    public void homeDirectory(){
-        Path currentRelativePath = Paths.get("");
-        String s = currentRelativePath.toAbsolutePath().toString();
-        setRelativePath(s);
-        //setRelativePath("/root"); // Used for challenge
-    }
+    abstract void execute();
+}
 
-    /* PWD */
-    public boolean executePWD() {
+/********************************************/
+
+class CommandPWD extends Command {
+
+    @Override
+    public void execute() {
         System.out.println(getRelativePath());  // Get the relative path where I am
-        return true;
+    }
+ }
+
+/********************************************/
+
+class CommandLS extends Command {
+
+    private String cmd;
+    List<String> listOfFiles = new ArrayList<String>();
+
+    public CommandLS(String command){
+        this.cmd = command;
     }
 
-    /* MKDIR */
-    public boolean executeMKDIR(String cmd) {
+    @Override
+    void execute() {
+
+        if(wrongNumberOfParameters()) return;
+        
+        if (cmdContainFlag_R()) printRecursive(); 
+        else                    printNotRecursive("");   
+    }
+
+    private boolean wrongNumberOfParameters() {
+        String[] parameters = cmd.split(" ");
+        if (parameters.length > 3){
+            System.out.println("Unknown command");
+            return true;
+        }
+        return false;
+    }
+
+    private boolean cmdContainFlag_R() {
+        return cmd.contains(" -r"); // I add the "space" because we also call "ls" like this "ls /dir1/ale-rizzuto/" and this is not recursive
+    }
+
+    private void printRecursive() {
+        try{
+            File f = new File(getRelativePath());
+
+            List<String> listOfDirectories = Arrays.asList(getDirectories(f));
+            listOfFiles = Arrays.asList(f.list());    // With "list" I got every file/directory
+
+            for (String file : listOfFiles) {
+                if (listOfDirectories.contains(file)){
+                    System.out.println(getRelativePath()+'/'+file);
+                    printNotRecursive("/"+file);
+                }else{
+                    System.out.println(file); // Print the names of file
+                }            
+            }
+        }catch(Exception e){
+            e.printStackTrace();
+        }  
+    }
+
+    private void printNotRecursive(String extraPath){
+        try{
+            File f = new File(getRelativePath()+extraPath);
+
+            listOfFiles = Arrays.asList(f.list());    // With "list" I got every file/directory
+
+            for (String file : listOfFiles)
+                System.out.println(file); // Print the names of file
+        }catch(Exception e){
+            e.printStackTrace();
+        }  
+    }
+
+    private String[] getDirectories(File f) {
+        return f.list(new FilenameFilter() {
+            @Override
+            public boolean accept(File current, String name) { return new File(current, name).isDirectory(); }});
+    }
+}
+
+/********************************************/
+
+class CommandMKDIR extends Command {
+
+    private String cmd;
+
+    public CommandMKDIR(String command){
+        this.cmd = command;
+    }
+
+    @Override
+    void execute() {
         try{
             if ( cmd.split(" ").length == 1){
-                printInvalid();
-                return false;
+                System.out.println("Invalid Command");
+                return;
             }
 
             List<String> directories = new LinkedList<String>(Arrays.asList(cmd.split(" ")));
-            directories.remove(0);
+            directories.remove(0); // First string is "mkdir"
             
             // This allow to create multiple directories at once, like a normal shell.
             for (String directory : directories){
                 File file = new File(getRelativePath() +"/"+ directory);
-                boolean bool = file.exists();     // Check if directory exists 
                 
-                if(bool){
-                  printDirectoryExists(); 
-                  break;
+                if(file.exists()){  // Check if directory exists 
+                    System.out.println("Directory already exists");
+                    break;
                 }
 
-                bool = file.mkdir();    //Creating the directory
+                file.mkdir();    //Creating the directory
             }
         }catch(Exception e){
             e.printStackTrace();
-        }
-        
-        return true;
+        }        
+    }
+}
+
+/********************************************/
+
+class CommandCD extends Command {
+
+    private String cmd;
+    private int maxLength;
+
+    public CommandCD(String command, int maxLength) {
+        this.cmd = command;
+        this.maxLength = maxLength;
     }
 
-    /* CD */
-    public boolean executeCD(String cmd, int maxChar){
+    @Override
+    void execute() {
         List<String> list = new ArrayList<String>();
         list = Arrays.asList(cmd.split(" "));
 
-        if (list.size() > 2){
-            printInvalid();
-            return false;
+        if (list.size() > 2){   // If more than 2 parameters
+            System.out.println("Invalid Command");
+            return;
         }
-        if (list.size() == 0){
-            homeDirectory();
-            return true;
+
+        if (list.size() == 1){  // If only was called "cd"
+            String first = stackPaths.firstElement();
+            stackPaths.clear();
+            stackPaths.add(first); // Keeps only first element
+            return;
+        }
+
+        //If 2nd parameters is ".." and is not root path
+        if (list.get(1).equals("..")){
+            if (stackPaths.size() != 1){
+                stackPaths.pop(); // Remove last element of stack
+            }else{
+                System.out.println("Directory not found");
+            }
+            return;
+        }
+
+        if (list.get(1).length() > maxLength){
+            System.out.printf("Invalid File or Folder Name");
+            return;
         }
 
         File file = new File(getRelativePath() +"/"+ list.get(1));
-        boolean bool = file.exists();    // Checking if directory exists
         
-        if(!bool){
-            printDirectoryNotFound();
-            return false;
-        }    
-
-        if (list.get(1).length() > maxChar){
-            printInvalidFileFolder();
-            return false;
+        if(!file.isDirectory()){             // Checking if directory exists
+            System.out.println("Invalid path");
+            return;
         }
 
-        String s = getRelativePath() + "/" + list.get(1); // I change relative path instead force change directory.
-        setRelativePath(s);
-        return true;
+        String[] dirs = list.get(1).split("/");
+        for (String dir : dirs) {
+            addPathToRelativePath("/" + dir);   // I add the new directory to the relative path.
+        }
     }
+}
 
-    /* TOUCH */
-    public boolean executeTOUCH(String cmd, int maxChar) {        
+/********************************************/
+
+class CommandTOUCH extends Command {
+
+    private String cmd;
+    private int maxLength;
+
+    public CommandTOUCH(String command, int maxLength) {
+        this.cmd = command;
+        this.maxLength = maxLength;
+    }
+    
+    @Override
+    public void execute () {        
         try {
             if ( cmd.split(" ").length == 1){
-                printInvalid();
-                return false;
+                System.out.println("Invalid Command");
+                return;
             }
 
             List<String> files = new LinkedList<String>(Arrays.asList(cmd.split(" ")));
@@ -246,8 +339,8 @@ class CommandsImpl implements Commands{
             // This allow to create multiple files at once, like a normal shell.
             // Use: touch <file1.txt> <file2.txt> ...
             for (String file : files){
-                if (file.length() > maxChar){
-                    printInvalidFileFolder();
+                if (file.length() > maxLength){
+                    System.out.printf("Invalid File or Folder Name");
                     continue; // Continue with next one
                 }
             
@@ -260,55 +353,5 @@ class CommandsImpl implements Commands{
         } catch (IOException e) {   // When createNewFile is uncommented -> Uncomment try-catch
            e.printStackTrace();
         }
-
-        return true;
     }
-
-    /* LS */
-    public boolean executeLS(String cmd) {
-        try{
-            boolean flag_R = false;
-
-            if (cmd.contains("-r")){ flag_R = true; }
-
-            List<String> listOfFiles = new ArrayList<String>();
-
-            File f = new File(getRelativePath());
-
-            if (flag_R){
-                String[] directories = f.list(new FilenameFilter() {
-                @Override
-                public boolean accept(File current, String name) { return new File(current, name).isDirectory(); }});
-
-                for (String directory : directories) {
-                    System.out.println(directory);
-
-                    f = new File(getRelativePath()+"/"+directory);
-                    listOfFiles = Arrays.asList(f.list());    // With "list" I got every file/directory
-
-                    for (String file : listOfFiles) {
-                        System.out.println("\t"+file); // Print the names of files and directories
-                    }
-                }
-            }
-            else{
-                listOfFiles = Arrays.asList(f.list());    // With "list" I got every file/directory
-
-                for (String file : listOfFiles) {
-                    System.out.println(file); // Print the names of files and directories
-                }
-            }
-
-            return true;
-        }catch(Exception e){
-            return false;
-        }
-    }
-
-    /*********** PRINTS *************/
-    public void printInvalid(){      System.out.println("Invalid Command"); }
-    public void printUnrecognized(){ System.out.println("Unrecognized Command"); }
-    public void printInvalidFileFolder() { System.out.printf("Invalid File or Folder Name"); }
-    public void printDirectoryNotFound() { System.out.println("Directory not found"); }
-    public void printDirectoryExists() { System.out.println("Directory already exists"); }
 }

@@ -6,7 +6,7 @@ While this application could be written procedurally, using OOP techniques (when
 
 --------------
 
-## Input:
+## Input
 
 The main input mechanism of the application is the acceptance of text on the command line. Commands should be read and processed until the **quit** command is found.
 
