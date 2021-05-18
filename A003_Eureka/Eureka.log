@@ -1,0 +1,23 @@
+2021-03-21 13:19:05,079 - INFO - test
+2021-03-21 13:19:11,170 - INFO - ************************************
+2021-03-21 13:19:11,171 - INFO - GET called - /
+2021-03-21 13:19:11,171 - INFO - A prototype API for Eureka challenge.
+2021-03-21 13:19:48,274 - INFO - ************************************
+2021-03-21 13:19:48,274 - INFO - GET called - /stockmarket
+2021-03-21 13:19:48,274 - INFO - Object Parametros has been created.
+2021-03-21 13:19:48,275 - INFO - checkParameters method called.
+2021-03-21 13:19:48,275 - INFO - checkKey method called.
+2021-03-21 13:19:48,277 - ERROR - Error - getConnection: ('01000', "[01000] [unixODBC][Driver Manager]Can't open lib 'SQL Server' : file not found (0) (SQLDriverConnect)")
+2021-03-21 13:19:48,278 - ERROR - Error - Could not stablish connection.
+2021-03-21 13:19:48,278 - INFO - All parameters are OK.
+2021-03-21 13:19:48,279 - INFO - createURL method called.
+2021-03-21 13:19:58,537 - INFO - ************************************
+2021-03-21 13:19:58,537 - INFO - POST called - /stockmarket
+2021-03-21 13:19:58,538 - INFO - Object Parametros has been created.
+2021-03-21 13:19:58,539 - INFO - All parameters are OK.
+2021-03-21 13:19:58,540 - INFO - Saving user ...
+2021-03-21 13:19:58,540 - INFO - saveParameters method called.
+2021-03-21 13:19:58,541 - ERROR - Error - getConnection: ('01000', "[01000] [unixODBC][Driver Manager]Can't open lib 'SQL Server' : file not found (0) (SQLDriverConnect)")
+2021-03-21 13:19:58,542 - ERROR - Error - Could not stablish connection.
+2021-03-21 13:19:58,543 - INFO - Your KEY is: X86NOH6II01P7R24
+
